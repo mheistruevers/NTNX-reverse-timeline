@@ -22,14 +22,72 @@ def local_css(file_name):
         #st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
         return f.read()
 
+def create_date_string(numpy_datetime):
+    
+    temp_datetime = numpy_datetime.astype(datetime)
+    timestring = temp_datetime.strftime("%A, %d.%m.%Y")
+
+    return timestring
+
+
+def change_input_settings():
+    
+    end_date_local = st.session_state['project_end_date']
+
+    if (end_date_local.isoweekday() not in range(1, 6)) & (st.session_state['weekday_type']=='Arbeitstage (Mo-Fr)'):
+        end_date_temp = np.busday_offset(end_date_local, 0, roll='forward')
+        end_date_local = end_date_temp.astype(datetime)
+        st.session_state['milestone_7_end'] = end_date_temp
+    else:
+        st.session_state['milestone_7_end'] = np.datetime64(end_date_local)
+    
+
+    if st.session_state['weekday_type'] == 'Arbeitstage (Mo-Fr)':
+
+
+        st.session_state['milestone_7_start'] = np.busday_offset(st.session_state['milestone_7_end'] , -abs(st.session_state['milestone_7_duration']), roll='backward')
+        st.session_state['milestone_6_start'] = np.busday_offset(st.session_state['milestone_7_start'], -abs(st.session_state['milestone_6_duration']), roll='backward')
+        st.session_state['milestone_5_start'] = np.busday_offset(st.session_state['milestone_6_start'], -abs(st.session_state['milestone_5_duration']), roll='backward')
+        st.session_state['milestone_4_start'] = np.busday_offset(st.session_state['milestone_5_start'], -abs(st.session_state['milestone_4_duration']), roll='backward')
+        st.session_state['milestone_3_start'] = np.busday_offset(st.session_state['milestone_4_start'], -abs(st.session_state['milestone_3_duration']), roll='backward')
+        st.session_state['milestone_2_start'] = np.busday_offset(st.session_state['milestone_3_start'], -abs(st.session_state['milestone_2_duration']), roll='backward')
+        st.session_state['milestone_1_start'] = np.busday_offset(st.session_state['milestone_2_start'], -abs(st.session_state['milestone_1_duration']), roll='backward')
+       
+        #st.session_state['milestone_7_end'] = np.datetime64(st.session_state['milestone_7_end'])       
+        st.session_state['milestone_6_end'] = np.busday_offset(st.session_state['milestone_7_start'], 0, roll='backward')
+        st.session_state['milestone_5_end'] = np.busday_offset(st.session_state['milestone_6_start'], 0, roll='backward')
+        st.session_state['milestone_4_end'] = np.busday_offset(st.session_state['milestone_5_start'], 0, roll='backward')
+        st.session_state['milestone_3_end'] = np.busday_offset(st.session_state['milestone_4_start'], 0, roll='backward')
+        st.session_state['milestone_2_end'] = np.busday_offset(st.session_state['milestone_3_start'], 0, roll='backward')
+        st.session_state['milestone_1_end'] = np.busday_offset(st.session_state['milestone_2_start'], 0, roll='backward')
+
+    else: # mo-so
+
+        st.session_state['milestone_7_start'] = np.datetime64(st.session_state['milestone_7_end']) - np.timedelta64(st.session_state['milestone_7_duration'])
+        st.session_state['milestone_6_start'] = np.datetime64(st.session_state['milestone_7_start']) - np.timedelta64(st.session_state['milestone_6_duration'])
+        st.session_state['milestone_5_start'] = np.datetime64(st.session_state['milestone_6_start']) - np.timedelta64(st.session_state['milestone_5_duration'])
+        st.session_state['milestone_4_start'] = np.datetime64(st.session_state['milestone_5_start']) - np.timedelta64(st.session_state['milestone_4_duration'])
+        st.session_state['milestone_3_start'] = np.datetime64(st.session_state['milestone_4_start']) - np.timedelta64(st.session_state['milestone_3_duration'])
+        st.session_state['milestone_2_start'] = np.datetime64(st.session_state['milestone_3_start']) - np.timedelta64(st.session_state['milestone_2_duration'])
+        st.session_state['milestone_1_start'] = np.datetime64(st.session_state['milestone_2_start']) - np.timedelta64(st.session_state['milestone_1_duration'])
+        
+        #st.session_state['milestone_7_end'] = st.session_state['project_end_date']
+        st.session_state['milestone_6_end'] = st.session_state['milestone_7_start']
+        st.session_state['milestone_5_end'] = st.session_state['milestone_6_start']
+        st.session_state['milestone_4_end'] = st.session_state['milestone_5_start']
+        st.session_state['milestone_3_end'] = st.session_state['milestone_4_start']
+        st.session_state['milestone_2_end'] = st.session_state['milestone_3_start']
+        st.session_state['milestone_1_end'] = st.session_state['milestone_2_start']
 
 # Set Default values
 def initialize_default_values():
-    # project end date by default today plus 6 months
-    st.session_state['project_end_date'] = date.today() + relativedelta(months=+6)
-    project_duration_days = (st.session_state['project_end_date']-date.today()).days
-    workdays = np.busday_count(date.today(),st.session_state['project_end_date'],[1,1,1,1,1,0,0])
-    st.session_state['project_end_date_duration'] = str(project_duration_days)+' Tage, '+ str(workdays)+' Arbeitstage'
+
+    # Set Project end date default (today + 6 months)
+    end_date = date.today() + relativedelta(months=+6)    
+    st.session_state['project_end_date'] = end_date
+
+    # Set weekday default
+    st.session_state['weekday_type'] = 'Wochentage (Mo-So)' 
 
     st.session_state['milestone_1_duration'] = 21
     st.session_state['milestone_2_duration'] = 7
@@ -39,15 +97,15 @@ def initialize_default_values():
     st.session_state['milestone_6_duration'] = 5
     st.session_state['milestone_7_duration'] = 7
 
-    st.session_state['milestone_7_start'] = st.session_state['project_end_date'] - timedelta(days=st.session_state['milestone_7_duration'])
-    st.session_state['milestone_6_start'] = st.session_state['milestone_7_start'] - timedelta(days=st.session_state['milestone_6_duration'])
-    st.session_state['milestone_5_start'] = st.session_state['milestone_6_start'] - timedelta(days=st.session_state['milestone_5_duration'])
-    st.session_state['milestone_4_start'] = st.session_state['milestone_5_start'] - timedelta(days=st.session_state['milestone_4_duration'])
-    st.session_state['milestone_3_start'] = st.session_state['milestone_4_start'] - timedelta(days=st.session_state['milestone_3_duration'])
-    st.session_state['milestone_2_start'] = st.session_state['milestone_3_start'] - timedelta(days=st.session_state['milestone_2_duration'])
-    st.session_state['milestone_1_start'] = st.session_state['milestone_2_start'] - timedelta(days=st.session_state['milestone_1_duration'])
+    st.session_state['milestone_7_start'] = np.datetime64(end_date) - np.timedelta64(st.session_state['milestone_7_duration'])
+    st.session_state['milestone_6_start'] = np.datetime64(st.session_state['milestone_7_start']) - np.timedelta64(st.session_state['milestone_6_duration'])
+    st.session_state['milestone_5_start'] = np.datetime64(st.session_state['milestone_6_start']) - np.timedelta64(st.session_state['milestone_5_duration'])
+    st.session_state['milestone_4_start'] = np.datetime64(st.session_state['milestone_5_start']) - np.timedelta64(st.session_state['milestone_4_duration'])
+    st.session_state['milestone_3_start'] = np.datetime64(st.session_state['milestone_4_start']) - np.timedelta64(st.session_state['milestone_3_duration'])
+    st.session_state['milestone_2_start'] = np.datetime64(st.session_state['milestone_3_start']) - np.timedelta64(st.session_state['milestone_2_duration'])
+    st.session_state['milestone_1_start'] = np.datetime64(st.session_state['milestone_2_start']) - np.timedelta64(st.session_state['milestone_1_duration'])
     
-    st.session_state['milestone_7_end'] = st.session_state['project_end_date']
+    st.session_state['milestone_7_end'] = np.datetime64(st.session_state['project_end_date'])
     st.session_state['milestone_6_end'] = st.session_state['milestone_7_start']
     st.session_state['milestone_5_end'] = st.session_state['milestone_6_start']
     st.session_state['milestone_4_end'] = st.session_state['milestone_5_start']
@@ -55,133 +113,218 @@ def initialize_default_values():
     st.session_state['milestone_2_end'] = st.session_state['milestone_3_start']
     st.session_state['milestone_1_end'] = st.session_state['milestone_2_start']
 
+    '''
+    if weekdays_type == 'Wochentage (Mo-So)':
+        st.session_state['milestone_1_duration'] = 21
+        st.session_state['milestone_2_duration'] = 7
+        st.session_state['milestone_3_duration'] = 14
+        st.session_state['milestone_4_duration'] = 2
+        st.session_state['milestone_5_duration'] = 28
+        st.session_state['milestone_6_duration'] = 5
+        st.session_state['milestone_7_duration'] = 7
+    else: # if Monday-Friday
+        st.session_state['milestone_1_duration'] = 15
+        st.session_state['milestone_2_duration'] = 5
+        st.session_state['milestone_3_duration'] = 10
+        st.session_state['milestone_4_duration'] = 2
+        st.session_state['milestone_5_duration'] = 20
+        st.session_state['milestone_6_duration'] = 3
+        st.session_state['milestone_7_duration'] = 5
 
-def change_end_date():
+    if weekdays_type == 'Arbeitstage (Mo-Fr)':
 
-    project_duration_days = str((st.session_state['project_end_date']-date.today()).days)
-    workdays = np.busday_count(date.today(),st.session_state['project_end_date'],[1,1,1,1,1,0,0])
-    st.session_state['project_end_date_duration'] = str(project_duration_days)+' Tage, '+ str(workdays)+' Arbeitstage'
+        st.session_state['milestone_7_start'] = np.busday_offset(end_date, -abs(st.session_state['milestone_7_duration']), roll='backward')
+        st.session_state['milestone_6_start'] = np.busday_offset(st.session_state['milestone_7_start'], -abs(st.session_state['milestone_6_duration']), roll='backward')
+        st.session_state['milestone_5_start'] = np.busday_offset(st.session_state['milestone_6_start'], -abs(st.session_state['milestone_5_duration']), roll='backward')
+        st.session_state['milestone_4_start'] = np.busday_offset(st.session_state['milestone_5_start'], -abs(st.session_state['milestone_4_duration']), roll='backward')
+        st.session_state['milestone_3_start'] = np.busday_offset(st.session_state['milestone_4_start'], -abs(st.session_state['milestone_3_duration']), roll='backward')
+        st.session_state['milestone_2_start'] = np.busday_offset(st.session_state['milestone_3_start'], -abs(st.session_state['milestone_2_duration']), roll='backward')
+        st.session_state['milestone_1_start'] = np.busday_offset(st.session_state['milestone_2_start'], -abs(st.session_state['milestone_1_duration']), roll='backward')
+       
+        st.session_state['milestone_7_end'] = end_date        
+        st.session_state['milestone_6_end'] = np.busday_offset(st.session_state['milestone_7_start'], 0, roll='backward')
+        st.session_state['milestone_5_end'] = np.busday_offset(st.session_state['milestone_6_start'], 0, roll='backward')
+        st.session_state['milestone_4_end'] = np.busday_offset(st.session_state['milestone_5_start'], 0, roll='backward')
+        st.session_state['milestone_3_end'] = np.busday_offset(st.session_state['milestone_4_start'], 0, roll='backward')
+        st.session_state['milestone_2_end'] = np.busday_offset(st.session_state['milestone_3_start'], 0, roll='backward')
+        st.session_state['milestone_1_end'] = np.busday_offset(st.session_state['milestone_2_start'], 0, roll='backward')
 
-    st.session_state['milestone_7_start'] = st.session_state['project_end_date'] - timedelta(days=st.session_state['milestone_7_duration'])
-    st.session_state['milestone_6_start'] = st.session_state['milestone_7_start'] - timedelta(days=st.session_state['milestone_6_duration'])
-    st.session_state['milestone_5_start'] = st.session_state['milestone_6_start'] - timedelta(days=st.session_state['milestone_5_duration'])
-    st.session_state['milestone_4_start'] = st.session_state['milestone_5_start'] - timedelta(days=st.session_state['milestone_4_duration'])
-    st.session_state['milestone_3_start'] = st.session_state['milestone_4_start'] - timedelta(days=st.session_state['milestone_3_duration'])
-    st.session_state['milestone_2_start'] = st.session_state['milestone_3_start'] - timedelta(days=st.session_state['milestone_2_duration'])
-    st.session_state['milestone_1_start'] = st.session_state['milestone_2_start'] - timedelta(days=st.session_state['milestone_1_duration'])
+    else:
 
-    st.session_state['milestone_7_end'] = st.session_state['project_end_date']
-    st.session_state['milestone_6_end'] = st.session_state['milestone_7_start']
-    st.session_state['milestone_5_end'] = st.session_state['milestone_6_start']
-    st.session_state['milestone_4_end'] = st.session_state['milestone_5_start']
-    st.session_state['milestone_3_end'] = st.session_state['milestone_4_start']
-    st.session_state['milestone_2_end'] = st.session_state['milestone_3_start']
-    st.session_state['milestone_1_end'] = st.session_state['milestone_2_start']
-
+        st.session_state['milestone_7_start'] = np.datetime64(end_date) - np.timedelta64(st.session_state['milestone_7_duration'])
+        st.session_state['milestone_6_start'] = np.datetime64(st.session_state['milestone_7_start']) - np.timedelta64(st.session_state['milestone_6_duration'])
+        st.session_state['milestone_5_start'] = np.datetime64(st.session_state['milestone_6_start']) - np.timedelta64(st.session_state['milestone_5_duration'])
+        st.session_state['milestone_4_start'] = np.datetime64(st.session_state['milestone_5_start']) - np.timedelta64(st.session_state['milestone_4_duration'])
+        st.session_state['milestone_3_start'] = np.datetime64(st.session_state['milestone_4_start']) - np.timedelta64(st.session_state['milestone_3_duration'])
+        st.session_state['milestone_2_start'] = np.datetime64(st.session_state['milestone_3_start']) - np.timedelta64(st.session_state['milestone_2_duration'])
+        st.session_state['milestone_1_start'] = np.datetime64(st.session_state['milestone_2_start']) - np.timedelta64(st.session_state['milestone_1_duration'])
+        
+        st.session_state['milestone_7_end'] = st.session_state['project_end_date']
+        st.session_state['milestone_6_end'] = st.session_state['milestone_7_start']
+        st.session_state['milestone_5_end'] = st.session_state['milestone_6_start']
+        st.session_state['milestone_4_end'] = st.session_state['milestone_5_start']
+        st.session_state['milestone_3_end'] = st.session_state['milestone_4_start']
+        st.session_state['milestone_2_end'] = st.session_state['milestone_3_start']
+        st.session_state['milestone_1_end'] = st.session_state['milestone_2_start']
+    '''
+    #print('Initialize defgault values - start value: '+str(st.session_state['milestone_7_start']))
 
 def change_milestone_7_duration():
-    st.session_state['milestone_7_start'] = st.session_state['project_end_date'] - timedelta(days=st.session_state['milestone_7_duration'])
-    st.session_state['milestone_6_start'] = st.session_state['milestone_7_start'] - timedelta(days=st.session_state['milestone_6_duration'])
-    st.session_state['milestone_5_start'] = st.session_state['milestone_6_start'] - timedelta(days=st.session_state['milestone_5_duration'])
-    st.session_state['milestone_4_start'] = st.session_state['milestone_5_start'] - timedelta(days=st.session_state['milestone_4_duration'])
-    st.session_state['milestone_3_start'] = st.session_state['milestone_4_start'] - timedelta(days=st.session_state['milestone_3_duration'])
-    st.session_state['milestone_2_start'] = st.session_state['milestone_3_start'] - timedelta(days=st.session_state['milestone_2_duration'])
-    st.session_state['milestone_1_start'] = st.session_state['milestone_2_start'] - timedelta(days=st.session_state['milestone_1_duration'])
+    if st.session_state['weekday_type'] == 'Arbeitstage (Mo-Fr)':
+        st.session_state['milestone_7_start'] = np.busday_offset(st.session_state['milestone_7_end'], -abs(st.session_state['milestone_7_duration']), roll='backward')
+        st.session_state['milestone_6_start'] = np.busday_offset(st.session_state['milestone_7_start'], -abs(st.session_state['milestone_6_duration']), roll='backward')
+        st.session_state['milestone_5_start'] = np.busday_offset(st.session_state['milestone_6_start'], -abs(st.session_state['milestone_5_duration']), roll='backward')
+        st.session_state['milestone_4_start'] = np.busday_offset(st.session_state['milestone_5_start'], -abs(st.session_state['milestone_4_duration']), roll='backward')
+        st.session_state['milestone_3_start'] = np.busday_offset(st.session_state['milestone_4_start'], -abs(st.session_state['milestone_3_duration']), roll='backward')
+        st.session_state['milestone_2_start'] = np.busday_offset(st.session_state['milestone_3_start'], -abs(st.session_state['milestone_2_duration']), roll='backward')
+        st.session_state['milestone_1_start'] = np.busday_offset(st.session_state['milestone_2_start'], -abs(st.session_state['milestone_1_duration']), roll='backward')         
+        st.session_state['milestone_6_end'] = np.busday_offset(st.session_state['milestone_7_start'], 0, roll='backward')
+        st.session_state['milestone_5_end'] = np.busday_offset(st.session_state['milestone_6_start'], 0, roll='backward')
+        st.session_state['milestone_4_end'] = np.busday_offset(st.session_state['milestone_5_start'], 0, roll='backward')
+        st.session_state['milestone_3_end'] = np.busday_offset(st.session_state['milestone_4_start'], 0, roll='backward')
+        st.session_state['milestone_2_end'] = np.busday_offset(st.session_state['milestone_3_start'], 0, roll='backward')
+        st.session_state['milestone_1_end'] = np.busday_offset(st.session_state['milestone_2_start'], 0, roll='backward')
 
-    st.session_state['milestone_6_end'] = st.session_state['milestone_7_start']
-    st.session_state['milestone_5_end'] = st.session_state['milestone_6_start']
-    st.session_state['milestone_4_end'] = st.session_state['milestone_5_start']
-    st.session_state['milestone_3_end'] = st.session_state['milestone_4_start']
-    st.session_state['milestone_2_end'] = st.session_state['milestone_3_start']
-    st.session_state['milestone_1_end'] = st.session_state['milestone_2_start']
+    else: #mo-so
+        st.session_state['milestone_7_start'] = np.datetime64(st.session_state['milestone_7_end']) - np.timedelta64(st.session_state['milestone_7_duration'])
+        st.session_state['milestone_6_start'] = np.datetime64(st.session_state['milestone_7_start']) - np.timedelta64(st.session_state['milestone_6_duration'])
+        st.session_state['milestone_5_start'] = np.datetime64(st.session_state['milestone_6_start']) - np.timedelta64(st.session_state['milestone_5_duration'])
+        st.session_state['milestone_4_start'] = np.datetime64(st.session_state['milestone_5_start']) - np.timedelta64(st.session_state['milestone_4_duration'])
+        st.session_state['milestone_3_start'] = np.datetime64(st.session_state['milestone_4_start']) - np.timedelta64(st.session_state['milestone_3_duration'])
+        st.session_state['milestone_2_start'] = np.datetime64(st.session_state['milestone_3_start']) - np.timedelta64(st.session_state['milestone_2_duration'])
+        st.session_state['milestone_1_start'] = np.datetime64(st.session_state['milestone_2_start']) - np.timedelta64(st.session_state['milestone_1_duration'])        
+        st.session_state['milestone_6_end'] = st.session_state['milestone_7_start']
+        st.session_state['milestone_5_end'] = st.session_state['milestone_6_start']
+        st.session_state['milestone_4_end'] = st.session_state['milestone_5_start']
+        st.session_state['milestone_3_end'] = st.session_state['milestone_4_start']
+        st.session_state['milestone_2_end'] = st.session_state['milestone_3_start']
+        st.session_state['milestone_1_end'] = st.session_state['milestone_2_start']
 
 
 def change_milestone_6_duration():
+    if st.session_state['weekday_type'] == 'Arbeitstage (Mo-Fr)':
+        st.session_state['milestone_6_start'] = np.busday_offset(st.session_state['milestone_7_start'], -abs(st.session_state['milestone_6_duration']), roll='backward')
+        st.session_state['milestone_5_start'] = np.busday_offset(st.session_state['milestone_6_start'], -abs(st.session_state['milestone_5_duration']), roll='backward')
+        st.session_state['milestone_4_start'] = np.busday_offset(st.session_state['milestone_5_start'], -abs(st.session_state['milestone_4_duration']), roll='backward')
+        st.session_state['milestone_3_start'] = np.busday_offset(st.session_state['milestone_4_start'], -abs(st.session_state['milestone_3_duration']), roll='backward')
+        st.session_state['milestone_2_start'] = np.busday_offset(st.session_state['milestone_3_start'], -abs(st.session_state['milestone_2_duration']), roll='backward')
+        st.session_state['milestone_1_start'] = np.busday_offset(st.session_state['milestone_2_start'], -abs(st.session_state['milestone_1_duration']), roll='backward')         
+        st.session_state['milestone_5_end'] = np.busday_offset(st.session_state['milestone_6_start'], 0, roll='backward')
+        st.session_state['milestone_4_end'] = np.busday_offset(st.session_state['milestone_5_start'], 0, roll='backward')
+        st.session_state['milestone_3_end'] = np.busday_offset(st.session_state['milestone_4_start'], 0, roll='backward')
+        st.session_state['milestone_2_end'] = np.busday_offset(st.session_state['milestone_3_start'], 0, roll='backward')
+        st.session_state['milestone_1_end'] = np.busday_offset(st.session_state['milestone_2_start'], 0, roll='backward')
 
-    st.session_state['milestone_6_start'] = st.session_state['milestone_7_start'] - timedelta(days=st.session_state['milestone_6_duration'])
-    st.session_state['milestone_5_start'] = st.session_state['milestone_6_start'] - timedelta(days=st.session_state['milestone_5_duration'])
-    st.session_state['milestone_4_start'] = st.session_state['milestone_5_start'] - timedelta(days=st.session_state['milestone_4_duration'])
-    st.session_state['milestone_3_start'] = st.session_state['milestone_4_start'] - timedelta(days=st.session_state['milestone_3_duration'])
-    st.session_state['milestone_2_start'] = st.session_state['milestone_3_start'] - timedelta(days=st.session_state['milestone_2_duration'])
-    st.session_state['milestone_1_start'] = st.session_state['milestone_2_start'] - timedelta(days=st.session_state['milestone_1_duration'])
-
-    st.session_state['milestone_5_end'] = st.session_state['milestone_6_start']
-    st.session_state['milestone_4_end'] = st.session_state['milestone_5_start']
-    st.session_state['milestone_3_end'] = st.session_state['milestone_4_start']
-    st.session_state['milestone_2_end'] = st.session_state['milestone_3_start']
-    st.session_state['milestone_1_end'] = st.session_state['milestone_2_start']
+    else:
+        st.session_state['milestone_6_start'] = np.datetime64(st.session_state['milestone_7_start']) - np.timedelta64(st.session_state['milestone_6_duration'])
+        st.session_state['milestone_5_start'] = np.datetime64(st.session_state['milestone_6_start']) - np.timedelta64(st.session_state['milestone_5_duration'])
+        st.session_state['milestone_4_start'] = np.datetime64(st.session_state['milestone_5_start']) - np.timedelta64(st.session_state['milestone_4_duration'])
+        st.session_state['milestone_3_start'] = np.datetime64(st.session_state['milestone_4_start']) - np.timedelta64(st.session_state['milestone_3_duration'])
+        st.session_state['milestone_2_start'] = np.datetime64(st.session_state['milestone_3_start']) - np.timedelta64(st.session_state['milestone_2_duration'])
+        st.session_state['milestone_1_start'] = np.datetime64(st.session_state['milestone_2_start']) - np.timedelta64(st.session_state['milestone_1_duration'])        
+        st.session_state['milestone_5_end'] = st.session_state['milestone_6_start']
+        st.session_state['milestone_4_end'] = st.session_state['milestone_5_start']
+        st.session_state['milestone_3_end'] = st.session_state['milestone_4_start']
+        st.session_state['milestone_2_end'] = st.session_state['milestone_3_start']
+        st.session_state['milestone_1_end'] = st.session_state['milestone_2_start']
 
 
 def change_milestone_5_duration():
-
-    st.session_state['milestone_5_start'] = st.session_state['milestone_6_start'] - timedelta(days=st.session_state['milestone_5_duration'])
-    st.session_state['milestone_4_start'] = st.session_state['milestone_5_start'] - timedelta(days=st.session_state['milestone_4_duration'])
-    st.session_state['milestone_3_start'] = st.session_state['milestone_4_start'] - timedelta(days=st.session_state['milestone_3_duration'])
-    st.session_state['milestone_2_start'] = st.session_state['milestone_3_start'] - timedelta(days=st.session_state['milestone_2_duration'])
-    st.session_state['milestone_1_start'] = st.session_state['milestone_2_start'] - timedelta(days=st.session_state['milestone_1_duration'])
-
-    st.session_state['milestone_4_end'] = st.session_state['milestone_5_start']
-    st.session_state['milestone_3_end'] = st.session_state['milestone_4_start']
-    st.session_state['milestone_2_end'] = st.session_state['milestone_3_start']
-    st.session_state['milestone_1_end'] = st.session_state['milestone_2_start']
+    if st.session_state['weekday_type'] == 'Arbeitstage (Mo-Fr)':
+        st.session_state['milestone_5_start'] = np.busday_offset(st.session_state['milestone_6_start'], -abs(st.session_state['milestone_5_duration']), roll='backward')
+        st.session_state['milestone_4_start'] = np.busday_offset(st.session_state['milestone_5_start'], -abs(st.session_state['milestone_4_duration']), roll='backward')
+        st.session_state['milestone_3_start'] = np.busday_offset(st.session_state['milestone_4_start'], -abs(st.session_state['milestone_3_duration']), roll='backward')
+        st.session_state['milestone_2_start'] = np.busday_offset(st.session_state['milestone_3_start'], -abs(st.session_state['milestone_2_duration']), roll='backward')
+        st.session_state['milestone_1_start'] = np.busday_offset(st.session_state['milestone_2_start'], -abs(st.session_state['milestone_1_duration']), roll='backward')         
+        st.session_state['milestone_4_end'] = np.busday_offset(st.session_state['milestone_5_start'], 0, roll='backward')
+        st.session_state['milestone_3_end'] = np.busday_offset(st.session_state['milestone_4_start'], 0, roll='backward')
+        st.session_state['milestone_2_end'] = np.busday_offset(st.session_state['milestone_3_start'], 0, roll='backward')
+        st.session_state['milestone_1_end'] = np.busday_offset(st.session_state['milestone_2_start'], 0, roll='backward')
+    
+    else:
+        st.session_state['milestone_5_start'] = np.datetime64(st.session_state['milestone_6_start']) - np.timedelta64(st.session_state['milestone_5_duration'])
+        st.session_state['milestone_4_start'] = np.datetime64(st.session_state['milestone_5_start']) - np.timedelta64(st.session_state['milestone_4_duration'])
+        st.session_state['milestone_3_start'] = np.datetime64(st.session_state['milestone_4_start']) - np.timedelta64(st.session_state['milestone_3_duration'])
+        st.session_state['milestone_2_start'] = np.datetime64(st.session_state['milestone_3_start']) - np.timedelta64(st.session_state['milestone_2_duration'])
+        st.session_state['milestone_1_start'] = np.datetime64(st.session_state['milestone_2_start']) - np.timedelta64(st.session_state['milestone_1_duration'])        
+        st.session_state['milestone_4_end'] = st.session_state['milestone_5_start']
+        st.session_state['milestone_3_end'] = st.session_state['milestone_4_start']
+        st.session_state['milestone_2_end'] = st.session_state['milestone_3_start']
+        st.session_state['milestone_1_end'] = st.session_state['milestone_2_start']
 
 
 def change_milestone_4_duration():
+    if st.session_state['weekday_type'] == 'Arbeitstage (Mo-Fr)':
+        st.session_state['milestone_4_start'] = np.busday_offset(st.session_state['milestone_5_start'], -abs(st.session_state['milestone_4_duration']), roll='backward')
+        st.session_state['milestone_3_start'] = np.busday_offset(st.session_state['milestone_4_start'], -abs(st.session_state['milestone_3_duration']), roll='backward')
+        st.session_state['milestone_2_start'] = np.busday_offset(st.session_state['milestone_3_start'], -abs(st.session_state['milestone_2_duration']), roll='backward')
+        st.session_state['milestone_1_start'] = np.busday_offset(st.session_state['milestone_2_start'], -abs(st.session_state['milestone_1_duration']), roll='backward')         
+        st.session_state['milestone_3_end'] = np.busday_offset(st.session_state['milestone_4_start'], 0, roll='backward')
+        st.session_state['milestone_2_end'] = np.busday_offset(st.session_state['milestone_3_start'], 0, roll='backward')
+        st.session_state['milestone_1_end'] = np.busday_offset(st.session_state['milestone_2_start'], 0, roll='backward')
 
-    st.session_state['milestone_4_start'] = st.session_state['milestone_5_start'] - timedelta(days=st.session_state['milestone_4_duration'])
-    st.session_state['milestone_3_start'] = st.session_state['milestone_4_start'] - timedelta(days=st.session_state['milestone_3_duration'])
-    st.session_state['milestone_2_start'] = st.session_state['milestone_3_start'] - timedelta(days=st.session_state['milestone_2_duration'])
-    st.session_state['milestone_1_start'] = st.session_state['milestone_2_start'] - timedelta(days=st.session_state['milestone_1_duration'])
+    else:
 
-    st.session_state['milestone_3_end'] = st.session_state['milestone_4_start']
-    st.session_state['milestone_2_end'] = st.session_state['milestone_3_start']
-    st.session_state['milestone_1_end'] = st.session_state['milestone_2_start']
+        st.session_state['milestone_4_start'] = np.datetime64(st.session_state['milestone_5_start']) - np.timedelta64(st.session_state['milestone_4_duration'])
+        st.session_state['milestone_3_start'] = np.datetime64(st.session_state['milestone_4_start']) - np.timedelta64(st.session_state['milestone_3_duration'])
+        st.session_state['milestone_2_start'] = np.datetime64(st.session_state['milestone_3_start']) - np.timedelta64(st.session_state['milestone_2_duration'])
+        st.session_state['milestone_1_start'] = np.datetime64(st.session_state['milestone_2_start']) - np.timedelta64(st.session_state['milestone_1_duration'])        
+        st.session_state['milestone_3_end'] = st.session_state['milestone_4_start']
+        st.session_state['milestone_2_end'] = st.session_state['milestone_3_start']
+        st.session_state['milestone_1_end'] = st.session_state['milestone_2_start']
 
 
 def change_milestone_3_duration():
+    if st.session_state['weekday_type'] == 'Arbeitstage (Mo-Fr)':
+        st.session_state['milestone_3_start'] = np.busday_offset(st.session_state['milestone_4_start'], -abs(st.session_state['milestone_3_duration']), roll='backward')
+        st.session_state['milestone_2_start'] = np.busday_offset(st.session_state['milestone_3_start'], -abs(st.session_state['milestone_2_duration']), roll='backward')
+        st.session_state['milestone_1_start'] = np.busday_offset(st.session_state['milestone_2_start'], -abs(st.session_state['milestone_1_duration']), roll='backward')         
+        st.session_state['milestone_2_end'] = np.busday_offset(st.session_state['milestone_3_start'], 0, roll='backward')
+        st.session_state['milestone_1_end'] = np.busday_offset(st.session_state['milestone_2_start'], 0, roll='backward')
 
-    st.session_state['milestone_3_start'] = st.session_state['milestone_4_start'] - timedelta(days=st.session_state['milestone_3_duration'])
-    st.session_state['milestone_2_start'] = st.session_state['milestone_3_start'] - timedelta(days=st.session_state['milestone_2_duration'])
-    st.session_state['milestone_1_start'] = st.session_state['milestone_2_start'] - timedelta(days=st.session_state['milestone_1_duration'])
-
-    st.session_state['milestone_2_end'] = st.session_state['milestone_3_start']
-    st.session_state['milestone_1_end'] = st.session_state['milestone_2_start']
+    else:
+        st.session_state['milestone_3_start'] = np.datetime64(st.session_state['milestone_4_start']) - np.timedelta64(st.session_state['milestone_3_duration'])
+        st.session_state['milestone_2_start'] = np.datetime64(st.session_state['milestone_3_start']) - np.timedelta64(st.session_state['milestone_2_duration'])
+        st.session_state['milestone_1_start'] = np.datetime64(st.session_state['milestone_2_start']) - np.timedelta64(st.session_state['milestone_1_duration'])        
+        st.session_state['milestone_2_end'] = st.session_state['milestone_3_start']
+        st.session_state['milestone_1_end'] = st.session_state['milestone_2_start']
 
 
 def change_milestone_2_duration():
-
-    st.session_state['milestone_2_start'] = st.session_state['milestone_3_start'] - timedelta(days=st.session_state['milestone_2_duration'])
-    st.session_state['milestone_1_start'] = st.session_state['milestone_2_start'] - timedelta(days=st.session_state['milestone_1_duration'])
-
-    st.session_state['milestone_1_end'] = st.session_state['milestone_2_start']
+    if st.session_state['weekday_type'] == 'Arbeitstage (Mo-Fr)':
+        st.session_state['milestone_2_start'] = np.busday_offset(st.session_state['milestone_3_start'], -abs(st.session_state['milestone_2_duration']), roll='backward')
+        st.session_state['milestone_1_start'] = np.busday_offset(st.session_state['milestone_2_start'], -abs(st.session_state['milestone_1_duration']), roll='backward')
+        st.session_state['milestone_1_end'] = np.busday_offset(st.session_state['milestone_2_start'], 0, roll='backward')
+    
+    else:
+        st.session_state['milestone_2_start'] = np.datetime64(st.session_state['milestone_3_start']) - np.timedelta64(st.session_state['milestone_2_duration'])
+        st.session_state['milestone_1_start'] = np.datetime64(st.session_state['milestone_2_start']) - np.timedelta64(st.session_state['milestone_1_duration'])
+        st.session_state['milestone_1_end'] = st.session_state['milestone_2_start']
 
 
 def change_milestone_1_duration():
+    if st.session_state['weekday_type'] == 'Arbeitstage (Mo-Fr)':
+        st.session_state['milestone_1_start'] = np.busday_offset(st.session_state['milestone_2_start'], -abs(st.session_state['milestone_1_duration']), roll='backward')
 
-    st.session_state['milestone_1_start'] = st.session_state['milestone_2_start'] - timedelta(days=st.session_state['milestone_1_duration'])
-
-
-def convert_datetime_to_string(datetime_object):
-    return datetime_object.strftime("%A, %d.%m.%Y")
+    else:
+        st.session_state['milestone_1_start'] = np.datetime64(st.session_state['milestone_2_start']) - np.timedelta64(st.session_state['milestone_1_duration'])
 
 
 # Generate vStorage Chart Diagram
 @st.cache(allow_output_mutation=True)
 def generate_gantt_diagramm(gantt_df):
 
-    timeline_names = [st.session_state['milestone_1_duration'], st.session_state['milestone_2_duration'], st.session_state['milestone_3_duration'], st.session_state['milestone_4_duration'], st.session_state['milestone_5_duration'], st.session_state['milestone_6_duration'], st.session_state['milestone_7_duration']]
-
     gantt_diagramm = px.timeline(gantt_df, 
                                 x_start="Start", 
-                                x_end="Finish", 
-                                y="Task",
-                                text=timeline_names
+                                x_end="Ende", 
+                                y="Meilenstein",
+                                text="Dauer"
                             )
     
     gantt_diagramm.update_layout(
         bargap=0.5
         ,bargroupgap=0.1
-        ,xaxis_range=[gantt_df.Start.min(), gantt_df.Finish.max()]
+        ,xaxis_range=[gantt_df.Start.min(), gantt_df.Ende.max()]
         ,xaxis = dict(
             showgrid=True
             #,rangeslider_visible=False
