@@ -7,6 +7,10 @@ import time
 from datetime import date, datetime, timedelta
 import locale
 from dateutil.relativedelta import relativedelta
+from fpdf import FPDF
+import base64
+from IPython.display import Image
+import tempfile
 
 
 ######################
@@ -68,23 +72,23 @@ with content_section:
     column_milestone, column_duration, column_start_date, column_end_date = st.columns([2,1,1,1])
     with column_milestone:
         st.markdown('**Meilenstein Beschreibung:**')
-        milestone_1 = st.text_input("Meilenstein 1:", key='m_1', value='Technologie-Evaluierung')
-        milestone_2 = st.text_input("Meilenstein 2:", key='m_2', value='Entscheidungsfindung')
-        milestone_3 = st.text_input("Meilenstein 3:", key='m_3', value='Beschaffung')
-        milestone_4 = st.text_input("Meilenstein 4:", key='m_4', value='Bestellverarbeitung')
-        milestone_5 = st.text_input("Meilenstein 5:", key='m_5', value='Lieferung')
-        milestone_6 = st.text_input("Meilenstein 6:", key='m_6', value='Projektplanung & Implementierung')
-        milestone_7 = st.text_input("Meilenstein 7:", key='m_7', value="Migration, Test's & Dokumentation")
+        milestone_1 = st.text_input("Meilenstein 1:", key='m_1', value='Technologie-Evaluierung', max_chars=40)
+        milestone_2 = st.text_input("Meilenstein 2:", key='m_2', value='Entscheidungsfindung', max_chars=40)
+        milestone_3 = st.text_input("Meilenstein 3:", key='m_3', value='Beschaffung', max_chars=40)
+        milestone_4 = st.text_input("Meilenstein 4:", key='m_4', value='Bestellverarbeitung', max_chars=40)
+        milestone_5 = st.text_input("Meilenstein 5:", key='m_5', value='Lieferung', max_chars=40)
+        milestone_6 = st.text_input("Meilenstein 6:", key='m_6', value='Planung, Installation & Schulung', max_chars=40)
+        milestone_7 = st.text_input("Meilenstein 7:", key='m_7', value="Migration, Test's & Dokumentation", max_chars=40)
 
     with column_duration:
         st.markdown('**Dauer (Tage):**')
-        milestone_1_duration = st.number_input("Meilenstein 1 - Dauer:", min_value=0, max_value=365, step=1, key='milestone_1_duration', on_change=custom_functions.change_milestone_1_duration)
-        milestone_2_duration = st.number_input("Meilenstein 2 - Dauer:", min_value=0, max_value=365, step=1, key='milestone_2_duration', on_change=custom_functions.change_milestone_2_duration)
-        milestone_3_duration = st.number_input("Meilenstein 3 - Dauer:", min_value=0, max_value=365, step=1, key='milestone_3_duration', on_change=custom_functions.change_milestone_3_duration)
-        milestone_4_duration = st.number_input("Meilenstein 4 - Dauer:", min_value=0, max_value=365, step=1, key='milestone_4_duration', on_change=custom_functions.change_milestone_4_duration)
-        milestone_5_duration = st.number_input("Meilenstein 5 - Dauer:", min_value=0, max_value=365, step=1, key='milestone_5_duration', on_change=custom_functions.change_milestone_5_duration)
-        milestone_6_duration = st.number_input("Meilenstein 6 - Dauer:", min_value=0, max_value=365, step=1, key='milestone_6_duration', on_change=custom_functions.change_milestone_6_duration)
-        milestone_7_duration = st.number_input("Meilenstein 7 - Dauer:", min_value=0, max_value=365, step=1, key='milestone_7_duration', on_change=custom_functions.change_milestone_7_duration)
+        milestone_1_duration = st.number_input("Meilenstein 1 - Dauer:", min_value=0, max_value=365, step=1, key='milestone_1_duration', on_change=custom_functions.change_milestone_duration, args=[1])
+        milestone_2_duration = st.number_input("Meilenstein 2 - Dauer:", min_value=0, max_value=365, step=1, key='milestone_2_duration', on_change=custom_functions.change_milestone_duration, args=[2])
+        milestone_3_duration = st.number_input("Meilenstein 3 - Dauer:", min_value=0, max_value=365, step=1, key='milestone_3_duration', on_change=custom_functions.change_milestone_duration, args=[3])
+        milestone_4_duration = st.number_input("Meilenstein 4 - Dauer:", min_value=0, max_value=365, step=1, key='milestone_4_duration', on_change=custom_functions.change_milestone_duration, args=[4])
+        milestone_5_duration = st.number_input("Meilenstein 5 - Dauer:", min_value=0, max_value=365, step=1, key='milestone_5_duration', on_change=custom_functions.change_milestone_duration, args=[5])
+        milestone_6_duration = st.number_input("Meilenstein 6 - Dauer:", min_value=0, max_value=365, step=1, key='milestone_6_duration', on_change=custom_functions.change_milestone_duration, args=[6])
+        milestone_7_duration = st.number_input("Meilenstein 7 - Dauer:", min_value=0, max_value=365, step=1, key='milestone_7_duration', on_change=custom_functions.change_milestone_duration, args=[7])
 
     with column_start_date:
         st.markdown('**Start Datum:**')
@@ -132,3 +136,28 @@ with content_section:
     st.markdown('#### **Timeline Diagramm:**')
     gantt_diagramm, gantt_diagramm_config = custom_functions.generate_gantt_diagramm(data_df)
     st.plotly_chart(gantt_diagramm,use_container_width=True, config=gantt_diagramm_config)
+
+    st.write('---')
+    st.markdown('#### **Download Report:**')
+
+    with st.form(key='my_form'):   
+        column_customer_name,column_created_by_name  = st.columns(2)
+        with column_customer_name:
+            customer_name = st.text_input("Report für")
+        with column_created_by_name:
+            created_by_name = st.text_input("Report von:")
+
+        submit_button = st.form_submit_button(label='Report erstellen')
+
+    if submit_button:
+        
+        with st.spinner('Download wird vorbereitet...'):
+            pdf = custom_functions.create_pdf_report(data_df,customer_name,created_by_name,gantt_diagramm)
+        st.success('Report erfolgreich erstellt!')
+        st.download_button(
+            label='⏬ Download', data=pdf.output(dest="S").encode("latin-1"), file_name='Projektplan.pdf')
+
+        
+
+        
+        
