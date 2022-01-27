@@ -139,9 +139,9 @@ with content_section:
     with st.form(key='my_form'):   
         column_customer_name,column_created_by_name  = st.columns(2)
         with column_customer_name:
-            customer_name = st.text_input("Report für")
+            customer_name = st.text_input("Report für", max_chars=60)
         with column_created_by_name:
-            created_by_name = st.text_input("Report von:")
+            created_by_name = st.text_input("Report von:", max_chars=100)
 
         submit_button = st.form_submit_button(label='Report erstellen')
 
