@@ -7,9 +7,6 @@ from PIL import Image
 from dateutil.relativedelta import relativedelta
 from datetime import datetime, timedelta
 from fpdf import FPDF
-import base64
-import os
-import io
 import tempfile
 
 ######################

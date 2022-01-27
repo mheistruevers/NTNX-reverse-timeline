@@ -6,11 +6,7 @@ import numpy as np
 import time
 from datetime import date, datetime, timedelta
 import locale
-from dateutil.relativedelta import relativedelta
 from fpdf import FPDF
-import base64
-from IPython.display import Image
-import tempfile
 
 
 ######################
