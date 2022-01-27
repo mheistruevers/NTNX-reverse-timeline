@@ -70,9 +70,9 @@ with content_section:
         st.markdown('**Meilenstein Beschreibung:**')
         milestone_1 = st.text_input("Meilenstein 1:", key='m_1', value='Technologie-Evaluierung', max_chars=40)
         milestone_2 = st.text_input("Meilenstein 2:", key='m_2', value='Entscheidungsfindung', max_chars=40)
-        milestone_3 = st.text_input("Meilenstein 3:", key='m_3', value='Beschaffung', max_chars=40)
-        milestone_4 = st.text_input("Meilenstein 4:", key='m_4', value='Bestellverarbeitung', max_chars=40)
-        milestone_5 = st.text_input("Meilenstein 5:", key='m_5', value='Lieferung', max_chars=40)
+        milestone_3 = st.text_input("Meilenstein 3:", key='m_3', value='Einkaufs- & Genehmigungsprozess', max_chars=40)
+        milestone_4 = st.text_input("Meilenstein 4:", key='m_4', value='Bestellabwicklung', max_chars=40)
+        milestone_5 = st.text_input("Meilenstein 5:", key='m_5', value='Versand / Transport', max_chars=40)
         milestone_6 = st.text_input("Meilenstein 6:", key='m_6', value='Planung, Installation & Schulung', max_chars=40)
         milestone_7 = st.text_input("Meilenstein 7:", key='m_7', value="Migration, Test's & Dokumentation", max_chars=40)
 
