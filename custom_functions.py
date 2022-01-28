@@ -368,5 +368,5 @@ def create_pdf_report(data_df,customer_name,created_by_name,gantt_diagramm,outpu
 def send_slack_message():
     # Send a Slack message to a channel via a webhook. 
     webhook = aws_access_key_id=st.secrets["slack_webhook_url"]
-    payload = {"text": 'Reverse Timeline Planning has been opened by someone.'}
+    payload = {"text": 'Reverse Timeline Planning - Report erstellt.'}
     requests.post(webhook, json.dumps(payload))
