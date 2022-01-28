@@ -12,7 +12,7 @@ from fpdf import FPDF
 ######################
 # Page Config
 ######################
-st.set_page_config(page_title="Reverse Timeline Planung", page_icon='./style/favicon.ico', layout="wide")
+st.set_page_config(page_title="Reverse Timeline Planung", page_icon='./style/favicon.png', layout="wide")
 # Use CSS Modifications stored in CSS file            
 st.markdown(f"<style>{custom_functions.local_css('style/style.css')}</style>", unsafe_allow_html=True)
 
@@ -134,21 +134,26 @@ with content_section:
     st.plotly_chart(gantt_diagramm,use_container_width=True, config=gantt_diagramm_config)
 
     st.write('---')
-    st.markdown('#### **Download Report:**')
+    st.markdown("<h3 style='text-align: left; color:#034ea2;'>Report Erstellung & Download:</h3>", unsafe_allow_html=True)    
+    #st.markdown('#### **Report Erstellung & Download:**')
 
     with st.form(key='my_form'):   
-        column_customer_name,column_created_by_name  = st.columns(2)
+        column_customer_name,column_created_by_name,column_selection  = st.columns(3)
         with column_customer_name:
             customer_name = st.text_input("Report für", max_chars=60)
         with column_created_by_name:
             created_by_name = st.text_input("Report von:", max_chars=100)
+        with column_selection:
+            output_selection = st.selectbox("Report Inhalt:",('Tabelle','Tabelle & Diagramm'))
+
+        remarks = st.text_area('Ergänzende Anmerkungen / Hinweise:')
 
         submit_button = st.form_submit_button(label='Report erstellen')
 
     if submit_button:
         
         with st.spinner('Download wird vorbereitet...'):
-            pdf = custom_functions.create_pdf_report(data_df,customer_name,created_by_name,gantt_diagramm)
+            pdf = custom_functions.create_pdf_report(data_df,customer_name,created_by_name,gantt_diagramm,output_selection,remarks)
         st.success('Report erfolgreich erstellt!')
         st.download_button(
             label='⏬ Download', data=pdf.output(dest="S").encode("latin-1"), file_name='Projektplan.pdf')

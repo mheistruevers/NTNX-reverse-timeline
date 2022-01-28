@@ -8,6 +8,7 @@ from dateutil.relativedelta import relativedelta
 from datetime import datetime, timedelta
 from fpdf import FPDF
 import tempfile
+import os
 
 ######################
 # Initialize variables
@@ -177,7 +178,7 @@ def generate_gantt_diagramm(gantt_df):
             #,side ="bottom"
             #,tickmode = 'array'
             ,dtick="M1"
-            ,tickformat='%m.%Y' #"%b\n%Y" #"Q%q %Y \n"
+            ,tickformat='%m.%Y'#"%b\n%Y"#'%d.%m.%Y' #"%b\n%Y" #"Q%q %Y \n"
             ,ticklabelmode="period"        
             #,ticks="outside"
             #,tickson="boundaries"
@@ -248,7 +249,8 @@ def generate_gantt_diagramm(gantt_df):
 
     return gantt_diagramm, gantt_diagramm_config
 
-def create_pdf_report(data_df,customer_name,created_by_name,gantt_diagramm):
+def create_pdf_report(data_df,customer_name,created_by_name,gantt_diagramm,output_selection,remarks):
+    
     pdf = FPDF(format='A4', unit='mm') # A4 (210 by 297 mm)
 
     pdf.add_page()
@@ -259,13 +261,12 @@ def create_pdf_report(data_df,customer_name,created_by_name,gantt_diagramm):
     pdf.ln(12) # line break with height
     pdf.set_font('Helvetica', '', 14)
     if customer_name:
-        pdf.write(3, f'{str(customer_name)+", Stand: "+date.today().strftime("%d.%m.%Y")}')
-    else:
-        pdf.write(3, f'{date.today().strftime("%d.%m.%Y")}')
+        pdf.write(3, f'{str(customer_name)}')
     pdf.ln(15) # line break with height
 
     # header row
     pdf.set_font('Helvetica', 'B', 11)
+    pdf.set_text_color(3, 78, 162) #red,green,blue => Nutanix blue
     columnNameList = list(data_df.columns)
     pdf.cell(80, 10, columnNameList[0], 1, 0, 'L')
     pdf.cell(15, 10, columnNameList[1], 1, 0, 'L')
@@ -273,6 +274,7 @@ def create_pdf_report(data_df,customer_name,created_by_name,gantt_diagramm):
     pdf.cell(45, 10, columnNameList[3], 1, 0, 'L')
     pdf.ln()
     pdf.set_font('Helvetica', '', 10)
+    pdf.set_text_color(0, 0, 0) #red,green,blue => Black
     # milestone 1 row
     pdf.cell(80, 8, str(data_df.iloc[0,0]), 1, 0, 'L')
     pdf.cell(15, 8, str(data_df.iloc[0,1]), 1, 0, 'L')
@@ -320,19 +322,47 @@ def create_pdf_report(data_df,customer_name,created_by_name,gantt_diagramm):
         pdf.write(3, 'Der Projektzeitraum umfasst insgesamt: '+str(data_df['Dauer'].sum())+' Wochentage (Montag-Sonntag).')
     else:
         pdf.write(3, 'Der Projektzeitraum umfasst insgesamt: '+str(data_df['Dauer'].sum())+' Arbeitstage (Montag-Freitag).')
+ 
+    if remarks:
+        if pdf.page_no() == 1:
+            print(pdf.page_no())
+            pdf.ln(15)
+        else:
+            pdf.ln(45)
+            print(pdf.page_no())
+        pdf.set_font('Helvetica', 'U', 11)
+        pdf.write(5,'Ergänzende Anmerkungen / Hinweise:')
+        pdf.ln(7)
+        pdf.set_font('Helvetica', '', 10)
+        pdf.write(5,remarks)
+        pdf.ln(10)
 
-    pdf.ln(15)
+    if output_selection == 'Tabelle & Diagramm':
 
-    gantt_diagramm.update_yaxes(visible=False) # hide yaxis in PDF diagramm due to space constraints
+        pdf.add_page(orientation='L')
+        pdf.set_font('Helvetica', '', 24)  
+        pdf.ln(10) # line break with height
+        pdf.write(4, f"Projektzeitraum Diagramm")
+        pdf.set_font('Helvetica', '', 10)
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
-        gantt_diagramm.write_image(tmpfile.name)
-        pdf.image(tmpfile.name, 8, 160, 188, 110) #margin left, margin top, width, height
-    gantt_diagramm.update_yaxes(visible=True) # show yaxis again due to bug in plotly as it would be hidden on website as well otherwise
+        pdf.ln(15)
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile: #delete=False, 
+            gantt_diagramm.to_image(format="png", engine="kaleido")#write_image(tmpfile.name)
+            gantt_diagramm.write_image(tmpfile.name, width=1000, height=500)
+            pdf.image(tmpfile.name, x = 0, y = 35, w = 290, h = 145, type = 'PNG', link = '')
+            tmpfile.delete = True
+            tmpfile.close()
+            os.remove(tmpfile.name)
+            pdf.ln(145)
 
     if created_by_name:
-        pdf.ln(105)
-        pdf.write(3, f'{"Erstellt von:  "+str(created_by_name)}')
+        pdf.write(3, f'{"Erstellt von: "+str(created_by_name)}')
+        pdf.ln(5)
+        pdf.write(3, f'{"Erstellt am:  "+date.today().strftime("%d.%m.%Y")}')
+    else:
+        pdf.ln(5)
+        pdf.write(3, f'{"Erstellt am:  "+date.today().strftime("%d.%m.%Y")}')
 
     return pdf
 
