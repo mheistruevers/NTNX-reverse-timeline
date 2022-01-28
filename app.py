@@ -48,6 +48,7 @@ with selection_section:
 
     if 'project_end_date' not in st.session_state:
             custom_functions.initialize_default_values()
+            custom_functions.send_slack_message()
 
     column_1, column_2 = st.columns(2)    
     with column_1:

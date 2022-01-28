@@ -9,6 +9,8 @@ from datetime import datetime, timedelta
 from fpdf import FPDF
 import tempfile
 import os
+import requests
+import json
 
 ######################
 # Initialize variables
@@ -324,12 +326,7 @@ def create_pdf_report(data_df,customer_name,created_by_name,gantt_diagramm,outpu
         pdf.write(3, 'Der Projektzeitraum umfasst insgesamt: '+str(data_df['Dauer'].sum())+' Arbeitstage (Montag-Freitag).')
  
     if remarks:
-        if pdf.page_no() == 1:
-            print(pdf.page_no())
-            pdf.ln(15)
-        else:
-            pdf.ln(45)
-            print(pdf.page_no())
+        pdf.ln(15)
         pdf.set_font('Helvetica', 'U', 11)
         pdf.write(5,'Ergänzende Anmerkungen / Hinweise:')
         pdf.ln(7)
@@ -350,11 +347,11 @@ def create_pdf_report(data_df,customer_name,created_by_name,gantt_diagramm,outpu
         with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile: #delete=False, 
             gantt_diagramm.to_image(format="png", engine="kaleido")#write_image(tmpfile.name)
             gantt_diagramm.write_image(tmpfile.name, width=1000, height=500)
-            pdf.image(tmpfile.name, x = 0, y = 35, w = 290, h = 145, type = 'PNG', link = '')
+            pdf.image(tmpfile.name, x = 0, y = 38, w = 290, h = 130, type = 'PNG', link = '')
             tmpfile.delete = True
             tmpfile.close()
             os.remove(tmpfile.name)
-            pdf.ln(145)
+            pdf.ln(140)
 
     if created_by_name:
         pdf.write(3, f'{"Erstellt von: "+str(created_by_name)}')
@@ -366,4 +363,10 @@ def create_pdf_report(data_df,customer_name,created_by_name,gantt_diagramm,outpu
 
     return pdf
 
-    
+# Send Slack Message
+# NO cache function!
+def send_slack_message():
+    # Send a Slack message to a channel via a webhook. 
+    webhook = aws_access_key_id=st.secrets["slack_webhook_url"]
+    payload = {"text": 'Reverse Timeline Planning has been opened by someone.'}
+    requests.post(webhook, json.dumps(payload))
