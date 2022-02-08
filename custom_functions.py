@@ -12,6 +12,7 @@ import os
 import requests
 import json
 
+
 ######################
 # Initialize variables
 ######################
@@ -178,10 +179,10 @@ def generate_gantt_diagramm(gantt_df):
             showgrid=True
             #,rangeslider_visible=False
             #,side ="bottom"
-            #,tickmode = 'array'
-            ,dtick="M1"
-            ,tickformat='%m.%Y'#"%b\n%Y"#'%d.%m.%Y' #"%b\n%Y" #"Q%q %Y \n"
-            ,ticklabelmode="period"        
+            ,tickmode="auto"  # auto, array or linear
+            ,dtick="M1"         # Set the step in-between ticks
+            ,tickformat='%m.%Y'#"KW %V \n %m %Y"#"Q%q %m %Y \n"#'%m.%Y'#"%b\n%Y"#'%d.%m.%Y' #"%b\n%Y" #"Q%q %Y \n"
+            ,ticklabelmode="period"#"instant"#"period"        
             #,ticks="outside"
             #,tickson="boundaries"
             #,title = ''
@@ -247,7 +248,7 @@ def generate_gantt_diagramm(gantt_df):
             "displaylogo": False, 'modeBarButtonsToRemove': ['zoom2d', 'toggleSpikelines', 'pan2d', 'select2d',
              'lasso2d', 'autoScale2d', 'hoverClosestCartesian', 'hoverCompareCartesian']
         }
-    gantt_diagramm.add_layout_image(background_image)    
+    gantt_diagramm.add_layout_image(background_image)   
 
     return gantt_diagramm, gantt_diagramm_config
 

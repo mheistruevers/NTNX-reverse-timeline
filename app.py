@@ -36,8 +36,8 @@ content_section = st.container()
             
 with header_section:
     
-    st.markdown("<h1 style='text-align: left; color:#034ea2;'>Reverse Timeline Planung</h1>", unsafe_allow_html=True)
-    st.markdown('Ein Hobby-Projekt von [**Martin Stenke**](https://www.linkedin.com/in/mstenke/) zur Rückwärtsrechnung für eine einfachere Projektzeitraumplanung. (Zuletzt aktualisiert: 26.01.2022)')
+    st.markdown("<h1 style='text-align: left; color:#034ea2;'>Nutanix Reverse Timeline Planung</h1>", unsafe_allow_html=True)
+    st.markdown('Ein Projekt von [**Martin Stenke**](https://www.linkedin.com/in/mstenke/) (Systems Engineer, Nutanix Germany GmbH) zur Rückwärtsrechnung für eine einfachere Projektzeitraumplanung.  \n(Zuletzt aktualisiert: 08.02.2022)')
 
     st.info('***Disclaimer: Hierbei handelt es sich lediglich um ein Hobby Projekt - keine Garantie auf Vollständigkeit oder Korrektheit der Auswertung / Daten.***')
     st.markdown("---")
