@@ -154,7 +154,7 @@ with content_section:
         
         with st.spinner('Download wird vorbereitet...'):
             pdf = custom_functions.create_pdf_report(data_df,customer_name,created_by_name,gantt_diagramm,output_selection,remarks)
-            custom_functions.send_slack_message()
+            #custom_functions.send_slack_message()
         st.success('Report erfolgreich erstellt!')
         st.download_button(
             label='⏬ Download', data=pdf.output(dest="S").encode("latin-1"), file_name='Projektplan.pdf')
