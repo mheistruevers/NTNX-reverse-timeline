@@ -203,11 +203,11 @@ def generate_gantt_diagramm(gantt_df):
             linecolor = '#636363',
             linewidth = 2,
             #title = 'VALUE',
-            titlefont = dict(
-                family = 'sans-serif',
-                size = 18,
-                color = 'lightgrey'
-            ),
+            # titlefont = dict(
+            #     family = 'sans-serif',
+            #     size = 18,
+            #     color = 'lightgrey'
+            # ),
             showticklabels = True,
             #tickangle = 45,
             tickfont = dict(
