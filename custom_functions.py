@@ -334,43 +334,50 @@ def create_pdf_report(data_df,customer_name,created_by_name,gantt_diagramm,outpu
         pdf.ln(10)
     
     if output_selection == 'Tabelle & Diagramm':
-        pdf.add_page(orientation='L')
-        pdf.set_font('Helvetica', '', 24)
-        pdf.ln(10)  # line break with height
-        pdf.write(4, f"Projektzeitraum Diagramm")
-        pdf.set_font('Helvetica', '', 10)
-        pdf.ln(15)
-        
-        # GEÄNDERT: Verbesserter PDF-Export mit angepassten Margins
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
-            # Temporäre Kopie des Diagramms mit angepassten Margins für Export erstellen
-            gantt_export = copy.deepcopy(gantt_diagramm)
-            
-            # Margins für Export anpassen - mehr Platz links für Y-Achsen-Labels
-            gantt_export.update_layout(
-                margin=dict(l=200, r=50, t=50, b=50),  # l=200 für lange Meilenstein-Namen
-            )
-            
-            # Bild mit höherer Auflösung exportieren
-            gantt_export.write_image(tmpfile.name, width=1400, height=700)
-            
-            # Bild ins PDF einfügen
-            pdf.image(tmpfile.name, x=0, y=38, w=290, h=130, type='PNG', link='')
-            
-            # Temporäre Datei aufräumen
-            tmpfile.close()
-            os.remove(tmpfile.name)
-        
-        pdf.ln(140)
-        
-        if created_by_name:
-            pdf.write(3, f'{"Erstellt von: "+str(created_by_name)}')
-            pdf.ln(5)
-            pdf.write(3, f'{"Erstellt am: "+date.today().strftime("%d.%m.%Y")}')
-        else:
-            pdf.ln(5)
-            pdf.write(3, f'{"Erstellt am: "+date.today().strftime("%d.%m.%Y")}')
+    pdf.add_page(orientation='L')
+    pdf.set_font('Helvetica', '', 24)
+    pdf.ln(10)  # line break with height
+    pdf.write(4, f"Projektzeitraum Diagramm")
+    pdf.set_font('Helvetica', '', 10)
+    pdf.ln(15)
     
+    # Verbesserter PDF-Export mit größerem Margin
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
+        # Temporäre Kopie des Diagramms erstellen
+        gantt_export = copy.deepcopy(gantt_diagramm)
+        
+        # Layout für Export optimieren
+        gantt_export.update_layout(
+            margin=dict(l=280, r=50, t=50, b=50),  # ERHÖHT: l=280 statt 200
+            yaxis=dict(
+                tickfont=dict(
+                    family='sans-serif',
+                    size=14,  # Etwas kleiner für bessere Lesbarkeit
+                    color='black'
+                )
+            )
+        )
+        
+        # Höhere Auflösung für bessere Qualität
+        gantt_export.write_image(tmpfile.name, width=1600, height=700)  # ERHÖHT: width=1600
+        
+        # Bild ins PDF einfügen
+        pdf.image(tmpfile.name, x=0, y=38, w=290, h=130, type='PNG', link='')
+        
+        # Temporäre Datei aufräumen
+        tmpfile.close()
+        os.remove(tmpfile.name)
+    
+    pdf.ln(140)
+    
+    if created_by_name:
+        pdf.write(3, f'{"Erstellt von: "+str(created_by_name)}')
+        pdf.ln(5)
+        pdf.write(3, f'{"Erstellt am: "+date.today().strftime("%d.%m.%Y")}')
+    else:
+        pdf.ln(5)
+        pdf.write(3, f'{"Erstellt am: "+date.today().strftime("%d.%m.%Y")}')
+
     return pdf
 
 # Send Slack Message
