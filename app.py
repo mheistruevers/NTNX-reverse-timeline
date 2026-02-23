@@ -6,6 +6,8 @@ import numpy as np
 import time
 from datetime import date, datetime, timedelta
 import locale
+import tempfile
+import os
 from fpdf import FPDF
 
 
@@ -131,35 +133,77 @@ with content_section:
 
     st.markdown('#### **Timeline Diagramm:**')
     gantt_diagramm, gantt_diagramm_config = custom_functions.generate_gantt_diagramm(data_df)
-    st.plotly_chart(gantt_diagramm,use_container_width=True, config=gantt_diagramm_config)
+    st.plotly_chart(gantt_diagramm,width='stretch', config=gantt_diagramm_config)
 
     st.write('---')
     st.markdown("<h3 style='text-align: left; color:#034ea2;'>Report Erstellung & Download:</h3>", unsafe_allow_html=True)    
     #st.markdown('#### **Report Erstellung & Download:**')
 
     with st.form(key='my_form'):   
-        column_customer_name,column_created_by_name,column_selection  = st.columns(3)
+        column_customer_name, column_created_by_name, column_selection = st.columns(3)
         with column_customer_name:
             customer_name = st.text_input("Report für", max_chars=60)
         with column_created_by_name:
             created_by_name = st.text_input("Report von:", max_chars=100)
         with column_selection:
-            output_selection = st.selectbox("Report Inhalt:",('Tabelle','Tabelle & Diagramm'))
+            output_selection = st.selectbox("Report Inhalt:", ('Tabelle', 'Tabelle & Diagramm'))
 
         remarks = st.text_area('Ergänzende Anmerkungen / Hinweise:')
+
+        # Export Format INNERHALB des Forms!
+        export_format = st.radio(
+            "Export Format:",
+            options=['PDF', 'Excel', 'Word'],
+            horizontal=True,
+            key='export_format'
+        )
 
         submit_button = st.form_submit_button(label='Report erstellen')
 
     if submit_button:
-        
-        with st.spinner('Download wird vorbereitet...'):
-            pdf = custom_functions.create_pdf_report(data_df,customer_name,created_by_name,gantt_diagramm,output_selection,remarks)
-            #custom_functions.send_slack_message()
-        st.success('Report erfolgreich erstellt!')
+        with st.spinner('Report wird erstellt...'):
+            time.sleep(0.5)
+
+            if export_format == 'PDF':
+                report = custom_functions.create_pdf_report(
+                    data_df, customer_name, created_by_name,
+                    gantt_diagramm, output_selection, remarks
+                )
+                file_name = f"Projektplan-{date.today().strftime('%Y%m%d')}.pdf"
+                mime_type = "application/pdf"
+                file_data = report.output(dest='S').encode('latin-1')
+
+            elif export_format == 'Excel':
+                report = custom_functions.create_excel_report(
+                    data_df, customer_name, created_by_name,
+                    gantt_diagramm, output_selection, remarks
+                )
+                file_name = f"Projektplan-{date.today().strftime('%Y%m%d')}.xlsx"
+                mime_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp:
+                    report.save(tmp.name)
+                    with open(tmp.name, 'rb') as f:
+                        file_data = f.read()
+                    os.remove(tmp.name)
+
+            else:  # Word
+                report = custom_functions.create_word_report(
+                    data_df, customer_name, created_by_name,
+                    gantt_diagramm, output_selection, remarks
+                )
+                file_name = f"Projektplan-{date.today().strftime('%Y%m%d')}.docx"
+                mime_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp:
+                    report.save(tmp.name)
+                    with open(tmp.name, 'rb') as f:
+                        file_data = f.read()
+                    os.remove(tmp.name)
+
+        st.success(f'✅ {export_format}-Report erfolgreich erstellt!')
         st.download_button(
-            label='⏬ Download', data=pdf.output(dest="S").encode("latin-1"), file_name='Projektplan.pdf')
+            label=f'⏬ {export_format} herunterladen',
+            data=file_data,
+            file_name=file_name,
+            mime=mime_type
+        )
 
-        
-
-        
-        
