@@ -340,29 +340,36 @@ def create_pdf_report(data_df,customer_name,created_by_name,gantt_diagramm,outpu
         pdf.write(4, f"Projektzeitraum Diagramm")
         pdf.set_font('Helvetica', '', 10)
         pdf.ln(15)
-        
-        # GEÄNDERT: Verbesserter PDF-Export mit angepassten Margins
+
+        # Verbesserter PDF-Export mit größerem Margin
         with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
-            # Temporäre Kopie des Diagramms mit angepassten Margins für Export erstellen
+            # Temporäre Kopie des Diagramms erstellen
             gantt_export = copy.deepcopy(gantt_diagramm)
-            
-            # Margins für Export anpassen - mehr Platz links für Y-Achsen-Labels
+
+            # Layout für Export optimieren
             gantt_export.update_layout(
-                margin=dict(l=200, r=50, t=50, b=50),  # l=200 für lange Meilenstein-Namen
+                margin=dict(l=280, r=50, t=50, b=50),  # l=280 für lange Meilenstein-Namen
+                yaxis=dict(
+                    tickfont=dict(
+                        family='sans-serif',
+                        size=14,  # Etwas kleiner für bessere Lesbarkeit
+                        color='black'
+                    )
+                )
             )
-            
-            # Bild mit höherer Auflösung exportieren
-            gantt_export.write_image(tmpfile.name, width=1400, height=700)
-            
+
+            # Höhere Auflösung für bessere Qualität
+            gantt_export.write_image(tmpfile.name, width=1600, height=700)
+
             # Bild ins PDF einfügen
             pdf.image(tmpfile.name, x=0, y=38, w=290, h=130, type='PNG', link='')
-            
+
             # Temporäre Datei aufräumen
             tmpfile.close()
             os.remove(tmpfile.name)
-        
+
         pdf.ln(140)
-        
+
         if created_by_name:
             pdf.write(3, f'{"Erstellt von: "+str(created_by_name)}')
             pdf.ln(5)
@@ -370,8 +377,9 @@ def create_pdf_report(data_df,customer_name,created_by_name,gantt_diagramm,outpu
         else:
             pdf.ln(5)
             pdf.write(3, f'{"Erstellt am: "+date.today().strftime("%d.%m.%Y")}')
-    
+
     return pdf
+
 
 # Send Slack Message
 # NO cache function!
