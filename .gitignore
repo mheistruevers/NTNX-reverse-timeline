@@ -1,3 +1,6 @@
 .streamlit/secrets.toml
 __pycache__/custom_functions.cpython-39.pyc
 temp.py
+.DS_Store
+.venv
+__pycache__
