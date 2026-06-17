@@ -245,6 +245,193 @@ def generate_gantt_diagramm(gantt_df):
     
     return gantt_diagramm, gantt_diagramm_config
 
+def create_excel_report(data_df, customer_name, created_by_name, gantt_diagramm, output_selection, remarks):
+    """Erstellt Excel-Report mit Tabelle und optional Gantt-Diagramm"""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, PatternFill
+    from openpyxl.utils.dataframe import dataframe_to_rows
+    from openpyxl.drawing.image import Image as XLImage
+    
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Projektzeitraum"
+    
+    # Überschrift
+    ws['A1'] = "Projektzeitraum Übersicht"
+    ws['A1'].font = Font(size=18, bold=True, color="034EA2")
+    ws.merge_cells('A1:D1')
+    
+    # Kundenname
+    if customer_name:
+        ws['A2'] = str(customer_name)
+        ws['A2'].font = Font(size=12)
+        ws.merge_cells('A2:D2')
+        start_row = 4
+    else:
+        start_row = 3
+    
+    # Tabellen-Header
+    headers = list(data_df.columns)
+    header_fill = PatternFill(start_color="034EA2", end_color="034EA2", fill_type="solid")
+    header_font = Font(color="FFFFFF", bold=True)
+    
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=start_row, column=col_num)
+        cell.value = header
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='left')
+    
+    # Daten einfügen
+    for row_num, row_data in enumerate(data_df.itertuples(index=False), start_row + 1):
+        ws.cell(row=row_num, column=1, value=row_data[0])  # Meilenstein
+        ws.cell(row=row_num, column=2, value=row_data[1])  # Dauer
+        ws.cell(row=row_num, column=3, value=row_data[2].strftime("%A, %d.%m.%Y"))  # Start
+        ws.cell(row=row_num, column=4, value=row_data[3].strftime("%A, %d.%m.%Y"))  # Ende
+    
+    # Spaltenbreiten anpassen
+    ws.column_dimensions['A'].width = 40
+    ws.column_dimensions['B'].width = 12
+    ws.column_dimensions['C'].width = 25
+    ws.column_dimensions['D'].width = 25
+    
+    # Zusammenfassung
+    summary_row = start_row + len(data_df) + 2
+    if st.session_state['weekday_type'] == 'Wochentage (Mo-So)':
+        summary_text = f"Der Projektzeitraum umfasst insgesamt: {data_df['Dauer'].sum()} Wochentage (Montag-Sonntag)."
+    else:
+        summary_text = f"Der Projektzeitraum umfasst insgesamt: {data_df['Dauer'].sum()} Arbeitstage (Montag-Freitag)."
+    
+    ws.cell(row=summary_row, column=1, value=summary_text)
+    ws.merge_cells(f'A{summary_row}:D{summary_row}')
+    
+    # Anmerkungen
+    if remarks:
+        remarks_row = summary_row + 2
+        ws.cell(row=remarks_row, column=1, value="Ergänzende Anmerkungen / Hinweise:")
+        ws.cell(row=remarks_row, column=1).font = Font(bold=True, underline="single")
+        ws.merge_cells(f'A{remarks_row}:D{remarks_row}')
+        
+        ws.cell(row=remarks_row + 1, column=1, value=remarks)
+        ws.merge_cells(f'A{remarks_row + 1}:D{remarks_row + 1}')
+        ws.cell(row=remarks_row + 1, column=1).alignment = Alignment(wrap_text=True)
+    
+    # Gantt-Diagramm einfügen (wenn gewünscht)
+    if output_selection == 'Tabelle & Diagramm':
+        from io import BytesIO as ImgIO
+
+        ws2 = wb.create_sheet(title="Gantt-Diagramm")
+        ws2['A1'] = "Projektzeitraum Diagramm"
+        ws2['A1'].font = Font(size=18, bold=True, color="034EA2")
+
+        gantt_export = copy.deepcopy(gantt_diagramm)
+        gantt_export.update_layout(
+            margin=dict(l=280, r=50, t=50, b=50),
+            yaxis=dict(tickfont=dict(family='sans-serif', size=14, color='black'))
+        )
+
+        # Bild direkt im Speicher halten (kein Temp-File!)
+        img_bytes = ImgIO()
+        gantt_export.layout.images = []
+        gantt_export.write_image(img_bytes, width=1600, height=700, format='png')
+        img_bytes.seek(0)
+
+        img = XLImage(img_bytes)
+        img.width = 1200
+        img.height = 525
+        ws2.add_image(img, 'A3')
+
+    # Erstellt-Informationen
+    info_row = summary_row + (4 if remarks else 2)
+    if created_by_name:
+        ws.cell(row=info_row, column=1, value=f"Erstellt von: {created_by_name}")
+        ws.cell(row=info_row + 1, column=1, value=f"Erstellt am: {date.today().strftime('%d.%m.%Y')}")
+    else:
+        ws.cell(row=info_row, column=1, value=f"Erstellt am: {date.today().strftime('%d.%m.%Y')}")
+    
+    return wb
+
+
+def create_word_report(data_df, customer_name, created_by_name, gantt_diagramm, output_selection, remarks):
+    """Erstellt Word-Report mit Tabelle und optional Gantt-Diagramm"""
+    from docx import Document
+    from docx.shared import Inches, Pt, RGBColor
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    
+    doc = Document()
+    
+    # Überschrift
+    title = doc.add_heading('Projektzeitraum Übersicht', level=1)
+    title.runs[0].font.color.rgb = RGBColor(3, 78, 162)  # Nutanix Blue
+    
+    # Kundenname
+    if customer_name:
+        customer_para = doc.add_paragraph(str(customer_name))
+        customer_para.runs[0].font.size = Pt(12)
+        doc.add_paragraph()  # Leerzeile
+    
+    # Tabelle erstellen
+    table = doc.add_table(rows=1, cols=4)
+    table.style = 'Light Grid Accent 1'
+    
+    # Header
+    header_cells = table.rows[0].cells
+    headers = list(data_df.columns)
+    for i, header in enumerate(headers):
+        header_cells[i].text = header
+        header_cells[i].paragraphs[0].runs[0].font.bold = True
+        header_cells[i].paragraphs[0].runs[0].font.color.rgb = RGBColor(3, 78, 162)
+    
+    # Daten
+    for _, row in data_df.iterrows():
+        row_cells = table.add_row().cells
+        row_cells[0].text = str(row['Meilenstein'])
+        row_cells[1].text = str(row['Dauer'])
+        row_cells[2].text = row['Start'].strftime("%A, %d.%m.%Y")
+        row_cells[3].text = row['Ende'].strftime("%A, %d.%m.%Y")
+    
+    # Zusammenfassung
+    doc.add_paragraph()
+    if st.session_state['weekday_type'] == 'Wochentage (Mo-So)':
+        summary_text = f"Der Projektzeitraum umfasst insgesamt: {data_df['Dauer'].sum()} Wochentage (Montag-Sonntag)."
+    else:
+        summary_text = f"Der Projektzeitraum umfasst insgesamt: {data_df['Dauer'].sum()} Arbeitstage (Montag-Freitag)."
+    doc.add_paragraph(summary_text)
+    
+    # Anmerkungen
+    if remarks:
+        doc.add_paragraph()
+        remarks_heading = doc.add_heading('Ergänzende Anmerkungen / Hinweise:', level=3)
+        doc.add_paragraph(remarks)
+    
+    # Gantt-Diagramm
+    if output_selection == 'Tabelle & Diagramm':
+        doc.add_page_break()
+        doc.add_heading('Projektzeitraum Diagramm', level=1)
+        
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
+            gantt_export = copy.deepcopy(gantt_diagramm)
+            gantt_export.update_layout(
+                margin=dict(l=280, r=50, t=50, b=50),
+                yaxis=dict(tickfont=dict(family='sans-serif', size=14, color='black'))
+            )
+            gantt_export.layout.images = []
+            gantt_export.write_image(tmpfile.name, width=1600, height=700)
+            
+            doc.add_picture(tmpfile.name, width=Inches(6.5))
+            
+            tmpfile.close()
+            os.remove(tmpfile.name)
+    
+    # Erstellt-Informationen
+    doc.add_paragraph()
+    if created_by_name:
+        doc.add_paragraph(f"Erstellt von: {created_by_name}")
+    doc.add_paragraph(f"Erstellt am: {date.today().strftime('%d.%m.%Y')}")
+    
+    return doc
+
+
 def create_pdf_report(data_df,customer_name,created_by_name,gantt_diagramm,output_selection,remarks):
     pdf = FPDF(format='A4', unit='mm')  # A4 (210 by 297 mm)
     pdf.add_page()
@@ -359,6 +546,7 @@ def create_pdf_report(data_df,customer_name,created_by_name,gantt_diagramm,outpu
             )
 
             # Höhere Auflösung für bessere Qualität
+            gantt_export.layout.images = []
             gantt_export.write_image(tmpfile.name, width=1600, height=700)
 
             # Bild ins PDF einfügen
