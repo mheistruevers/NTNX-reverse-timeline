@@ -332,6 +332,7 @@ def create_excel_report(data_df, customer_name, created_by_name, gantt_diagramm,
 
         # Bild direkt im Speicher halten (kein Temp-File!)
         img_bytes = ImgIO()
+        gantt_export.layout.images = []
         gantt_export.write_image(img_bytes, width=1600, height=700, format='png')
         img_bytes.seek(0)
 
@@ -414,6 +415,7 @@ def create_word_report(data_df, customer_name, created_by_name, gantt_diagramm, 
                 margin=dict(l=280, r=50, t=50, b=50),
                 yaxis=dict(tickfont=dict(family='sans-serif', size=14, color='black'))
             )
+            gantt_export.layout.images = []
             gantt_export.write_image(tmpfile.name, width=1600, height=700)
             
             doc.add_picture(tmpfile.name, width=Inches(6.5))
@@ -544,6 +546,7 @@ def create_pdf_report(data_df,customer_name,created_by_name,gantt_diagramm,outpu
             )
 
             # Höhere Auflösung für bessere Qualität
+            gantt_export.layout.images = []
             gantt_export.write_image(tmpfile.name, width=1600, height=700)
 
             # Bild ins PDF einfügen
